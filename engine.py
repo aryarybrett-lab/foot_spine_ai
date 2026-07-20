@@ -5,7 +5,6 @@ import streamlit as st
 from sklearn.metrics.pairwise import cosine_similarity
 from google.cloud import aiplatform
 from google.cloud.aiplatform_v1 import PredictionServiceClient
-from google.cloud.aiplatform_v1.types import EndpointName
 from google.oauth2 import credentials as google_credentials
 
 class DiagnosisEngine:
@@ -25,13 +24,14 @@ class DiagnosisEngine:
             self.creds = None
             self.fs = gcsfs.GCSFileSystem()
 
-        # 엔드포인트 메타데이터 조회를 생략하고 직접 Prediction Client 생성 (권한 에러 원천 차단)
+        # Prediction Client 생성
         client_options = {"api_endpoint": f"{location}-aiplatform.googleapis.com"}
         if self.creds:
             self.prediction_client = PredictionServiceClient(client_options=client_options, credentials=self.creds)
         else:
             self.prediction_client = PredictionServiceClient(client_options=client_options)
             
+        # 엔드포인트 리소스 경로 직접 생성
         self.endpoint_path = self.prediction_client.endpoint_path(
             project=project_id, location=location, endpoint=endpoint_id
         )
@@ -66,7 +66,7 @@ class DiagnosisEngine:
         _, encoded = cv2.imencode('.jpg', processed_img, [int(cv2.IMWRITE_JPEG_QUALITY), 40])
         img_b64 = base64.b64encode(encoded.tobytes()).decode('utf-8')
         
-        # 직접 예측 API 호출 (간소화된 페이로드 구조 적용)
+        # 직접 예측 API 호출
         from google.protobuf import json_format
         from google.protobuf.struct_pb2 import Value
         
@@ -76,13 +76,11 @@ class DiagnosisEngine:
             instances=[instance]
         )
         
-        # 결과 파싱
         prediction = response.predictions[0]
         if isinstance(prediction, dict):
             display_names = prediction.get('displayNames', [])
             confidences = prediction.get('confidences', [])
         else:
-            # Protobuf 구조체 대응
             display_names = list(prediction.get('displayNames', []))
             confidences = list(prediction.get('confidences', []))
 
