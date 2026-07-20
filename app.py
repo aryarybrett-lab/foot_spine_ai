@@ -1,8 +1,8 @@
-
 import streamlit as st
 import base64
 import gcsfs
 from engine import DiagnosisEngine
+import os
 
 # --- 페이지 설정 ---
 st.set_page_config(
@@ -17,8 +17,12 @@ st.markdown("족저압 결과지(JPG)를 업로드하시면, AI가 정밀 진단
 # --- 엔진 로드 (캐싱을 통해 속도 최적화) ---
 @st.cache_resource
 def load_engine():
+    # 현재 스크립트가 있는 폴더 기준 상대 경로 설정 (코랩 & 클라우드 공용 호환)
+    current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in locals() else os.getcwd()
+    csv_file = os.path.join(current_dir, 'vectorized_clinical_dataset.csv')
+    
     return DiagnosisEngine(
-        csv_path='/content/vectorized_clinical_dataset.csv',
+        csv_path=csv_file,
         endpoint_id='6036926316664586240'
     )
 
