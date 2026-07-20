@@ -17,7 +17,6 @@ st.markdown("족저압 결과지(JPG)를 업로드하시면, AI가 정밀 진단
 # --- 엔진 로드 (캐싱을 통해 속도 최적화) ---
 @st.cache_resource
 def load_engine():
-    # 현재 스크립트가 있는 폴더 기준 상대 경로 설정 (코랩 & 클라우드 공용 호환)
     current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in locals() else os.getcwd()
     csv_file = os.path.join(current_dir, 'vectorized_clinical_dataset.csv')
     
@@ -28,19 +27,22 @@ def load_engine():
 
 with st.spinner("AI 엔진을 불러오는 중입니다..."):
     engine = load_engine()
-    fs = gcsfs.GCSFileSystem()
+    
+    # GCS 파일 시스템 인증 연동 (Secrets의 GCP_TOKEN 활용)
+    if hasattr(st, "secrets") and "GCP_TOKEN" in st.secrets:
+        fs = gcsfs.GCSFileSystem(token=st.secrets["GCP_TOKEN"])
+    else:
+        fs = gcsfs.GCSFileSystem()
 
 # --- 사이드바: 파일 업로드 ---
 st.sidebar.header("📁 환자 데이터 입력")
 uploaded_file = st.sidebar.file_uploader("족저압 결과지 이미지 선택", type=["jpg", "png", "jpeg"])
 
 if uploaded_file is not None:
-    # 업로드한 이미지 미리보기
     st.sidebar.image(uploaded_file, caption="업로드된 족저압 결과지", use_container_width=True)
     
     if st.sidebar.button("🚀 AI 정밀 분석 시작", type="primary"):
         with st.spinner("🧠 족저압 패턴 분석 및 유사 환자 검색 중..."):
-            # 엔진 실행
             img_bytes = uploaded_file.getvalue()
             result = engine.run_analysis_from_bytes(img_bytes, filename=uploaded_file.name)
             
@@ -65,12 +67,17 @@ if uploaded_file is not None:
             
             st.info(f"**매칭 환자 ID:** {best_match['foot_filename']} | **유사도:** {similarity:.2%}")
             
-            # GCS에서 X-ray 이미지 바이트를 읽어와서 Base64로 변환 후 렌더링
+            # GCS에서 X-ray 이미지 바이트를 안전하게 읽어오는 함수
             def get_img_b64(gs_path):
                 try:
-                    with fs.open(gs_path, 'rb') as f:
+                    # gs:// 로 시작하는 경우 처리
+                    path = str(gs_path)
+                    if path.startswith("gs://"):
+                        path = path.replace("gs://", "")
+                    with fs.open(path, 'rb') as f:
                         return base64.b64encode(f.read()).decode('utf-8')
-                except:
+                except Exception as e:
+                    print(f"Image load error for {gs_path}: {e}")
                     return None
             
             ap_b64 = get_img_b64(best_match['xray_ap_path'])
