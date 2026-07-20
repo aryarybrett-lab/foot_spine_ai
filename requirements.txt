@@ -1,0 +1,7 @@
+streamlit
+pandas
+numpy
+opencv-python-headless
+scikit-learn
+google-cloud-aiplatform
+gcsfs
