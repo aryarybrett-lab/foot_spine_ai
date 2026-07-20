@@ -13,7 +13,7 @@ class DiagnosisEngine:
         self.location = location
         self.endpoint_id = endpoint_id
         
-        # 인증 토큰 설정
+        # 인증 토큰 설정 (GCS 및 Prediction Client 양쪽 모두에 완벽 주입)
         if hasattr(st, "secrets") and "GCP_TOKEN" in st.secrets:
             token = st.secrets["GCP_TOKEN"]
             self.creds = google_credentials.Credentials(token)
@@ -24,7 +24,7 @@ class DiagnosisEngine:
             self.creds = None
             self.fs = gcsfs.GCSFileSystem()
 
-        # Prediction Client 생성
+        # Prediction Client 생성 시 credentials 명시적 전달 (핵심 수정 포인트)
         client_options = {"api_endpoint": f"{location}-aiplatform.googleapis.com"}
         if self.creds:
             self.prediction_client = PredictionServiceClient(client_options=client_options, credentials=self.creds)
