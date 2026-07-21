@@ -13,12 +13,30 @@ class DiagnosisEngine:
         self.location = location
         self.endpoint_id = endpoint_id
         
-        # 인증 토큰 설정 (GCS 및 Prediction Client 양쪽 모두에 완벽 주입)
-        if hasattr(st, "secrets") and "GCP_TOKEN" in st.secrets:
-            token = st.secrets["GCP_TOKEN"]
-            self.creds = google_credentials.Credentials(token)
-            aiplatform.init(project=project_id, location=location, credentials=self.creds)
-            self.fs = gcsfs.GCSFileSystem(token=token)
+        # 인증 토큰 설정 (Streamlit Secrets의 GCP_ADC_JSON 파싱)
+        if hasattr(st, "secrets") and "GCP_ADC_JSON" in st.secrets:
+            try:
+                adc_raw = st.secrets["GCP_ADC_JSON"]
+                adc_data = json.loads(adc_raw) if isinstance(adc_raw, str) else dict(adc_raw)
+                
+                # 구글 공식 Credentials 객체 생성 (리프레시 토큰 포함)
+                self.creds = google_credentials.Credentials(
+                    token=adc_data.get("token"),
+                    refresh_token=adc_data.get("refresh_token"),
+                    token_uri=adc_data.get("token_uri"),
+                    client_id=adc_data.get("client_id"),
+                    client_secret=adc_data.get("client_secret"),
+                    scopes=["https://www.googleapis.com/auth/cloud-platform"]
+                )
+                aiplatform.init(project=project_id, location=location, credentials=self.creds)
+                
+                # gcsfs용 토큰 설정 (dict 또는 전달 방식 호환)
+                self.fs = gcsfs.GCSFileSystem(token=adc_data)
+            except Exception as e:
+                st.error(f"GCP_ADC_JSON 파싱 및 인증 실패: {e}")
+                self.creds = None
+                aiplatform.init(project=project_id, location=location)
+                self.fs = gcsfs.GCSFileSystem()
         else:
             aiplatform.init(project=project_id, location=location)
             self.creds = None
