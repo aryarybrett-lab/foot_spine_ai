@@ -28,10 +28,16 @@ def load_engine():
 with st.spinner("AI 엔진을 불러오는 중입니다..."):
     engine = load_engine()
     
-    # GCS 파일 시스템 인증 연동 (Secrets의 GCP_TOKEN 활용)
-    if hasattr(st, "secrets") and "GCP_TOKEN" in st.secrets:
-        fs = gcsfs.GCSFileSystem(token=st.secrets["GCP_TOKEN"])
-    else:
+    # GCS 파일 시스템 인증 연동 (GCP_ADC_JSON 파싱 반영)
+    try:
+        if hasattr(st, "secrets") and "GCP_ADC_JSON" in st.secrets:
+            adc_raw = st.secrets["GCP_ADC_JSON"]
+            adc_data = json.loads(adc_raw) if isinstance(adc_raw, str) else dict(adc_raw)
+            fs = gcsfs.GCSFileSystem(token=adc_data)
+        else:
+            fs = gcsfs.GCSFileSystem()
+    except Exception as e:
+        st.error(f"GCS 파일 시스템 인증 실패: {e}")
         fs = gcsfs.GCSFileSystem()
 
 # --- 사이드바: 파일 업로드 ---
