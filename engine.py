@@ -29,6 +29,11 @@ class DiagnosisEngine:
                     client_secret=adc_data.get("client_secret"),
                     scopes=["https://www.googleapis.com/auth/cloud-platform"]
                 )
+
+                # 토큰이 만료되었거나 비어있으면 리프레시 토큰으로 즉시 자동 갱신
+                if self.creds.expired or not self.creds.valid:
+                    self.creds.refresh(Request())
+                    
                 aiplatform.init(project=project_id, location=location, credentials=self.creds)
                 
                 # gcsfs용 토큰 설정 (dict 또는 전달 방식 호환)
