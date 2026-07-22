@@ -19,6 +19,8 @@ class DiagnosisEngine:
             try:
                 adc_raw = st.secrets["GCP_ADC_JSON"]
                 adc_data = json.loads(adc_raw) if isinstance(adc_raw, str) else dict(adc_raw)
+
+                from google.auth.transport.requests import Request
                 
                 # 구글 공식 Credentials 객체 생성 (리프레시 토큰 포함)
                 self.creds = google_credentials.Credentials(
@@ -30,9 +32,9 @@ class DiagnosisEngine:
                     scopes=["https://www.googleapis.com/auth/cloud-platform"]
                 )
 
-                # 토큰이 만료되었거나 비어있으면 리프레시 토큰으로 즉시 자동 갱신
-                if self.creds.expired or not self.creds.valid:
-                    self.creds.refresh(Request())
+                # [핵심] 무조건 토큰을 강제로 갱신하여 API 호출 시 Unauthenticated 발생 원인 원천 차단
+                request = Request()
+                self.creds.refresh(request)
                     
                 aiplatform.init(project=project_id, location=location, credentials=self.creds)
                 
