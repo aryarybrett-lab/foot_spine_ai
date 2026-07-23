@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.title("🩺 Star Docs: AI 족저압 스크리닝 및 유사 환자 매칭 시스템")
+st.title("🩺 STARDOCs: AI 족저압 스크리닝 및 유사 환자 매칭 시스템")
 st.markdown("족저압 결과지(JPG)를 업로드하시면, AI가 정밀 진단 소견을 도출하고 가장 유사한 임상 케이스의 X-ray를 비교해 드립니다.")
 
 # --- 엔진 로드 (캐싱을 통해 속도 최적화) ---
