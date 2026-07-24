@@ -116,9 +116,9 @@ class DiagnosisEngine:
             cands = {k: raw.get(k, 0) for k in keys if k in raw}
             if cands:
                 best = max(cands, key=cands.get)
-                if cands[best] > 0.35: significant.append((best, cands[best]))
+                if cands[best] > 0.50: significant.append((best, cands[best]))
         for n, c in raw.items():
-            if not any(n in v for v in self.groups.values()) and c > 0.35: significant.append((n, c))
+            if not any(n in v for v in self.groups.values()) and c > 0.50: significant.append((n, c))
             
         order = ['TORS_RIGHT', 'TORS_LEFT', 'ROT_RIGHT', 'ROT_LEFT', 'SAG_ANTERIOR', 
                  'SAG_FLATTENING', 'ASYM_RIGHT', 'ASYM_LEFT', 'STATUS_SCOLIOSIS', 'STATUS_DEGENERATIVE']
