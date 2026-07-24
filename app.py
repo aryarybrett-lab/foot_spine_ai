@@ -65,7 +65,7 @@ if uploaded_file is not None:
                 for diag, conf in diagnosis_list:
                     st.metric(label=diag, value=f"{conf:.1%}")
             else:
-                st.info("특이 소견 임계치(0.35)를 넘는 항목이 없습니다.")
+                st.info("특이 소견 임계치(0.50)를 넘는 항목이 없습니다.")
                 
         with col2:
             st.subheader("🔍 최적 유사 환자 비교")
