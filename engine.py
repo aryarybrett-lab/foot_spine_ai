@@ -71,13 +71,17 @@ class DiagnosisEngine:
             # 3. Cloud Run API로 이미지 전송 (`/predict` 엔드포인트)
             predict_url = f"{self.cloud_run_url}/predict"
             files = {"file": (filename, processed_bytes, "image/jpeg")}
-            
+
             response = requests.post(predict_url, files=files, timeout=15)
-            
+
             if response.status_code != 200:
-                return {"error": f"Cloud Run API 통신 실패 (Status: {response.status_code})"}
-            
-            res_json = response.json()
+                return {"error": f"Cloud Run API 오류 (코드: {response.status_code}): {response.text[:100]}"}
+
+            # JSON 응답 여부 체크
+            try:
+                res_json = response.json()
+            except Exception:
+                return {"error": f"Cloud Run 응답이 JSON 포맷이 아닙니다: {response.text[:100]}"}
             
             # 4. Cloud Run 응답 데이터 파싱
             # API 응답 구조: {"predictions_vector": [...], "diagnosis_scores": {...}}
