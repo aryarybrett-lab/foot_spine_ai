@@ -78,8 +78,8 @@ if uploaded_file is not None:
                 best_match = result.get('best_match', {})
                 similarity = result.get('similarity', 0.0)
                 
-               # ⭕ best_match가 None이 아니고 비어있지 않은지 안전하게 체크
-               if best_match is not None and not best_match.empty:
+                # ⭕ best_match가 None이 아니고 비어있지 않은지 안전하게 체크
+                if best_match is not None and not best_match.empty:
                     st.info(f"**매칭 환자 ID:** {best_match.get('foot_filename', 'N/A')} | **유사도:** {similarity:.2%}")
                     
                     # GCS에서 X-ray 이미지 바이트를 안전하게 읽어오는 함수
