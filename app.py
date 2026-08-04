@@ -4,6 +4,10 @@ import base64
 import gcsfs
 from engine import DiagnosisEngine
 import os
+import requests
+
+# 구글 클라우드 런 배포 완료된 URL 주소
+CLOUD_RUN_URL = "https://foot-spine-ai-952120235106.us-central1.run.app"
 
 # --- 페이지 설정 ---
 st.set_page_config(
@@ -21,9 +25,10 @@ def load_engine():
     current_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in locals() else os.getcwd()
     csv_file = os.path.join(current_dir, 'vectorized_clinical_dataset.csv')
     
+    # 💡 Vertex AI endpoint_id 대신 Cloud Run URL 전달
     return DiagnosisEngine(
         csv_path=csv_file,
-        endpoint_id='6036926316664586240'
+        cloud_run_url=CLOUD_RUN_URL
     )
 
 with st.spinner("AI 엔진을 불러오는 중입니다..."):
@@ -53,58 +58,63 @@ if uploaded_file is not None:
             img_bytes = uploaded_file.getvalue()
             result = engine.run_analysis_from_bytes(img_bytes, filename=uploaded_file.name)
             
-        st.success("✨ 분석이 완료되었습니다!")
-        
-        # --- 결과 화면 레이아웃 (2개 컬럼) ---
-        col1, col2 = st.columns([1, 1.2])
-        
-        with col1:
-            st.subheader("📋 AI 정밀 진단 소견")
-            diagnosis_list = result['diagnosis']
-            if diagnosis_list:
-                for diag, conf in diagnosis_list:
-                    st.metric(label=diag, value=f"{conf:.1%}")
-            else:
-                st.info("특이 소견 임계치(0.50)를 넘는 항목이 없습니다.")
-                
-        with col2:
-            st.subheader("🔍 최적 유사 환자 비교")
-            best_match = result['best_match']
-            similarity = result['similarity']
+        if result and "error" not in result:
+            st.success("✨ 분석이 완료되었습니다!")
             
-            st.info(f"**매칭 환자 ID:** {best_match['foot_filename']} | **유사도:** {similarity:.2%}")
+            # --- 결과 화면 레이아웃 (2개 컬럼) ---
+            col1, col2 = st.columns([1, 1.2])
             
-            # GCS에서 X-ray 이미지 바이트를 안전하게 읽어오는 함수
-            def get_img_b64(gs_path):
-                try:
-                    # gs:// 로 시작하는 경우 처리
-                    path = str(gs_path)
-                    if path.startswith("gs://"):
-                        path = path.replace("gs://", "")
-                    with fs.open(path, 'rb') as f:
-                        return base64.b64encode(f.read()).decode('utf-8')
-                except Exception as e:
-                    print(f"Image load error for {gs_path}: {e}")
-                    return None
-            
-            ap_b64 = get_img_b64(best_match['xray_ap_path'])
-            lat_b64 = get_img_b64(best_match['xray_lat_path'])
-            
-            # X-ray 이미지 나란히 배치
-            xray_col1, xray_col2 = st.columns(2)
-            with xray_col1:
-                st.markdown("**[AP X-ray]**")
-                if ap_b64:
-                    st.markdown(f'<img src="data:image/jpeg;base64,{ap_b64}" style="width:100%; border-radius:5px; border:1px solid #ddd;"/>', unsafe_allow_html=True)
+            with col1:
+                st.subheader("📋 AI 정밀 진단 소견")
+                diagnosis_list = result.get('diagnosis', [])
+                if diagnosis_list:
+                    for diag, conf in diagnosis_list:
+                        st.metric(label=diag, value=f"{conf:.1%}")
                 else:
-                    st.warning("AP 이미지를 불러올 수 없습니다.")
+                    st.info("특이 소견 임계치(0.50)를 넘는 항목이 없습니다.")
                     
-            with xray_col2:
-                st.markdown("**[Lateral X-ray]**")
-                if lat_b64:
-                    st.markdown(f'<img src="data:image/jpeg;base64,{lat_b64}" style="width:100%; border-radius:5px; border:1px solid #ddd;"/>', unsafe_allow_html=True)
-                else:
-                    st.warning("Lateral 이미지를 불러올 수 없습니다.")
+            with col2:
+                st.subheader("🔍 최적 유사 환자 비교")
+                best_match = result.get('best_match', {})
+                similarity = result.get('similarity', 0.0)
+                
+                if best_match:
+                    st.info(f"**매칭 환자 ID:** {best_match.get('foot_filename', 'N/A')} | **유사도:** {similarity:.2%}")
+                    
+                    # GCS에서 X-ray 이미지 바이트를 안전하게 읽어오는 함수
+                    def get_img_b64(gs_path):
+                        try:
+                            if not gs_path:
+                                return None
+                            path = str(gs_path)
+                            if path.startswith("gs://"):
+                                path = path.replace("gs://", "")
+                            with fs.open(path, 'rb') as f:
+                                return base64.b64encode(f.read()).decode('utf-8')
+                        except Exception as e:
+                            print(f"Image load error for {gs_path}: {e}")
+                            return None
+                    
+                    ap_b64 = get_img_b64(best_match.get('xray_ap_path'))
+                    lat_b64 = get_img_b64(best_match.get('xray_lat_path'))
+                    
+                    # X-ray 이미지 나란히 배치
+                    xray_col1, xray_col2 = st.columns(2)
+                    with xray_col1:
+                        st.markdown("**[AP X-ray]**")
+                        if ap_b64:
+                            st.markdown(f'<img src="data:image/jpeg;base64,{ap_b64}" style="width:100%; border-radius:5px; border:1px solid #ddd;"/>', unsafe_allow_html=True)
+                        else:
+                            st.warning("AP 이미지를 불러올 수 없습니다.")
+                            
+                    with xray_col2:
+                        st.markdown("**[Lateral X-ray]**")
+                        if lat_b64:
+                            st.markdown(f'<img src="data:image/jpeg;base64,{lat_b64}" style="width:100%; border-radius:5px; border:1px solid #ddd;"/>', unsafe_allow_html=True)
+                        else:
+                            st.warning("Lateral 이미지를 불러올 수 없습니다.")
+        else:
+            st.error(f"분석에 실패했습니다: {result.get('error', '알 수 없는 오류')}")
 else:
     st.markdown("---")
     st.info("👈 왼쪽 사이드바에서 족저압 결과지 이미지 파일을 업로드해 주세요.")
