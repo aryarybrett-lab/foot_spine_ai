@@ -114,7 +114,7 @@ class DiagnosisEngine:
             
             return {
                 "diagnosis": significant,
-                "best_match": self.df.iloc[match_idx],
+                "best_match": self.df.iloc[match_idx].to_dict(),,
                 "similarity": sims[match_idx]
             }
 
