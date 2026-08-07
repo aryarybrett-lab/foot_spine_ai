@@ -102,14 +102,18 @@ if uploaded_file is not None:
                     st.info(f"**매칭 환자 ID:** {patient_id} | **유사도:** {similarity:.2%}")
                     
                     # GCS에서 X-ray 이미지 바이트를 안전하게 읽어오는 함수
-                    def get_img_b64(gs_path):
+                   def get_img_b64(gs_path):
                         try:
                             if not gs_path or gs_path == 'N/A':
                                 return None
-                            path = str(gs_path)
-                            if path.startswith("gs://"):
-                                path = path.replace("gs://", "")
-                            with fs.open(path, 'rb') as f:
+                            
+                            # 1. 파일명만 순수하게 추출 (예: 'P001_ap.jpg')
+                            filename = str(gs_path).split('/')[-1]
+                            
+                            # 2. 실제 GCS 버킷/폴더 경로 결합
+                            full_path = f"ai_foot_spine_image_bucket/x-ray_data/{filename}"
+                            
+                            with fs.open(full_path, 'rb') as f:
                                 return base64.b64encode(f.read()).decode('utf-8')
                         except Exception as e:
                             print(f"GCS Image load error for {gs_path}: {e}")
