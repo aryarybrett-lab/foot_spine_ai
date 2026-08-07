@@ -109,6 +109,7 @@ if uploaded_file is not None:
                                 return None
                             
                             clean_path = str(gs_path).replace("gs://", "").strip()
+                            clean_path = clean_path.replace("ai_foot_spine_image_bucket/", "ai_foot_spine_image_bucket_us/")
                             
                             with fs.open(clean_path, 'rb') as f:
                                 return base64.b64encode(f.read()).decode('utf-8')
