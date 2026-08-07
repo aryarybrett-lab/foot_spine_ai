@@ -102,7 +102,8 @@ if uploaded_file is not None:
                     st.info(f"**매칭 환자 ID:** {patient_id} | **유사도:** {similarity:.2%}")
                     
                     # GCS에서 X-ray 이미지 바이트를 안전하게 읽어오는 함수
-                   def get_img_b64(gs_path):
+                    
+                    def get_img_b64(gs_path):
                         try:
                             if not gs_path or gs_path == 'N/A':
                                 return None
