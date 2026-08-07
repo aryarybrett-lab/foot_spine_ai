@@ -107,8 +107,8 @@ if uploaded_file is not None:
                         try:
                             if not gs_path or gs_path == 'N/A':
                                 return None
-
-                               clean_path = str(gs_path).replace("gs://", "").strip()
+                            
+                            clean_path = str(gs_path).replace("gs://", "").strip()
                             
                             with fs.open(clean_path, 'rb') as f:
                                 return base64.b64encode(f.read()).decode('utf-8')
