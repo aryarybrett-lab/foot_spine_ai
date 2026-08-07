@@ -112,7 +112,7 @@ if uploaded_file is not None:
                                 filename = str(gs_path).split('/')[-1]
 
                                 # 2. 실제 GCS 버킷/폴더 경로 결합
-                                full_path = f"ai_foot_spine_image_bucket/xray_data/{filename}"
+                                full_path = f"gs://ai_foot_spine_image_bucket/xray_data/{filename}"
                                 
                                 with fs.open(full_path, 'rb') as f:
                                     return base64.b64encode(f.read()).decode('utf-8')
