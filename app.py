@@ -105,23 +105,17 @@ if uploaded_file is not None:
                     
                     def get_img_b64(gs_path):
                         try:
-                            st.write(f"🔍 [디버그] 원본 경로: `{gs_path}`")
-                            
                             if not gs_path or gs_path == 'N/A':
-                                st.warning("⚠️ 경로가 비어있거나 'N/A'입니다.")
                                 return None
                                 
-                            filename = str(gs_path).split('/')[-1]
-                            
-                            full_path = f"ai_foot_spine_image_bucket/x-ray_data/{filename}"
-                            st.write(f"🎯 [디버그] GCS 접근 시도 경로: `{full_path}`")
-                            
-                            with fs.open(full_path, 'rb') as f:
-                                return base64.b64encode(f.read()).decode('utf-8')
+                                full_path = str(gs_path).replace("gs://", "")
+                                
+                                with fs.open(full_path, 'rb') as f:
+                                    return base64.b64encode(f.read()).decode('utf-8')
+                        
                         
                         except Exception as e:
-                            
-                            st.error(f"❌ GCS 로드 실패 원인: {e}")
+                            print(f"GCS Image load error for {gs_path}: {e}")
                             return None
                     
                     ap_b64 = get_img_b64(xray_ap)
